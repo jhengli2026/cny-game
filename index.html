@@ -2,19 +2,19 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>🐍 金馬奔騰賀新春：猜燈謎大會 🧨</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐍 金馬奔騰賀新春：猜燈謎大會 🧨</title>
     <style>
-        /* --- 設計師專區：您可以在這裡修改配色 --- */
         :root {
-            --bg-color: #8B0000;       /* 背景深紅 */
-            --card-bg: #FFF8E7;        /* 卡片米白 */
-            --text-gold: #FFD700;      /* 金色文字 */
-            --btn-color: #D22B2B;      /* 按鈕紅 */
+            --bg-color: #8B0000;
+            --card-bg: #FFF8E7;
+            --text-gold: #FFD700;
+            --btn-color: #D22B2B;
         }
 
         body {
             background-color: var(--bg-color);
-            background-image: linear-gradient(135deg, #8B0000 0%, #600000 100%); /* 增加漸層質感 */
+            background-image: linear-gradient(135deg, #8B0000 0%, #600000 100%);
             color: var(--text-gold);
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
             text-align: center;
@@ -24,6 +24,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            /* 防止手機雙擊縮放 */
+            touch-action: manipulation; 
         }
 
         h1 {
@@ -34,7 +36,24 @@
 
         .container {
             width: 100%;
-            max-width: 500px; /* 手機最適合的寬度 */
+            max-width: 500px;
+        }
+
+        /* 音效控制按鈕 */
+        .sound-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            background: rgba(0,0,0,0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--text-gold);
         }
 
         .card-container {
@@ -56,10 +75,11 @@
             align-items: center;
             justify-content: center;
             transition: transform 0.3s ease;
+            position: relative;
         }
 
         #question {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: bold;
             line-height: 1.6;
             margin-bottom: 20px;
@@ -70,15 +90,17 @@
             padding-top: 15px;
             border-top: 2px dashed #ccc;
             width: 100%;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             color: #D22B2B;
             font-weight: 900;
-            opacity: 0;           /* 預設隱藏 */
-            transition: opacity 0.5s;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 彈跳效果 */
         }
 
         #answer-section.visible {
-            opacity: 1;           /* 顯示時 */
+            opacity: 1;
+            transform: scale(1);
         }
 
         .buttons {
@@ -97,8 +119,9 @@
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 4px 0 #b8860b; /* 按鈕立體感 */
+            box-shadow: 0 4px 0 #b8860b;
             transition: all 0.1s;
+            user-select: none;
         }
 
         button:active {
@@ -115,6 +138,8 @@
 </head>
 <body>
 
+    <div class="sound-control" onclick="toggleSound()" id="soundIcon">🔊</div>
+
     <div class="container">
         <h1>🧨 新春猜燈謎 🧨</h1>
         
@@ -128,7 +153,7 @@
         </div>
 
         <div class="buttons">
-            <button onclick="toggleAnswer()">🫣 看答案</button>
+            <button onclick="revealAnswer()">🫣 看答案</button>
             <button onclick="nextRiddle()">👉 下一題</button>
         </div>
 
@@ -139,7 +164,7 @@
     </div>
 
     <script>
-        // --- 題目區：您可以自由新增題目 ---
+        // --- 題目區 ---
         const riddles = [
             { q: "樣子像小船，兩頭翹又尖，生在泥巴裡，渾身都是孔。（猜一植物）", a: "蓮藕" },
             { q: "過年家家貼紅聯，劈里啪啦響連天。（猜一物品）", a: "鞭炮" },
@@ -151,46 +176,101 @@
             { q: "駝背老公公，鬍子亂蓬蓬，生前沒有血，死後滿身紅。（猜一動物）", a: "蝦子" },
             { q: "半個西瓜樣，口朝上面放。（猜一字）", a: "舀" },
             { q: "一年四季穿皮襖，晚上巡邏白天睡覺。（猜一動物）", a: "貓頭鷹" },
-            { q: "東邊一條河，西邊一條河，兩頭不通水，中間小船過。（猜一人體器官）", a: "眼睛 (或鼻子上的眼鏡)" }
+            { q: "東邊一條河，西邊一條河，兩頭不通水，中間小船過。（猜一人體器官）", a: "眼睛" },
+            { q: "平日不思，中秋想你，有方有圓，又甜又蜜。（猜一食品）", a: "月餅" }
         ];
 
         let currentRiddle = {};
+        let isSoundOn = true;
+        
+        // --- 音效系統 (Web Audio API) ---
+        // 使用合成器產生音效，不需外部檔案
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq, duration, type = 'sine', startTime = 0) {
+            if (!isSoundOn) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = type;
+            oscillator.frequency.value = freq;
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime + startTime;
+            
+            // 音量包絡線 (Fade out)
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+
+        function playSuccessSound() {
+            // 播放一個快樂的 C大調琶音 (C5, E5, G5, C6)
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playTone(523.25, 0.3, 'sine', 0);    // Do
+            playTone(659.25, 0.3, 'sine', 0.1);  // Mi
+            playTone(783.99, 0.3, 'sine', 0.2);  // Sol
+            playTone(1046.50, 0.6, 'sine', 0.3); // High Do
+        }
+
+        function playClickSound() {
+            // 輕微的點擊聲
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playTone(800, 0.1, 'triangle', 0);
+        }
+
+        // --- 遊戲邏輯 ---
 
         function loadRiddle() {
-            // 隨機抽選題目
             const randomIndex = Math.floor(Math.random() * riddles.length);
             currentRiddle = riddles[randomIndex];
             
             document.getElementById("question").innerText = currentRiddle.q;
             document.getElementById("answer-text").innerText = currentRiddle.a;
             
-            // 隱藏答案
             document.getElementById("answer-section").classList.remove("visible");
         }
 
-        function toggleAnswer() {
+        function revealAnswer() {
             const answerSection = document.getElementById("answer-section");
-            if (answerSection.classList.contains("visible")) {
-                // 如果已經顯示，再次點擊可以是「隱藏」或不做事，這裡選擇不做事
-            } else {
+            if (!answerSection.classList.contains("visible")) {
                 answerSection.classList.add("visible");
+                playSuccessSound(); // 播放通關音效
             }
         }
 
         function nextRiddle() {
-            // 簡單的動畫效果
+            playClickSound(); // 播放切換音效
             const card = document.querySelector(".card");
-            card.style.transform = "translateX(50px)";
+            
+            // 動畫
+            card.style.transform = "translateX(-100vw) rotate(-10deg)";
             card.style.opacity = "0";
             
             setTimeout(() => {
                 loadRiddle();
-                card.style.transform = "translateX(0)";
-                card.style.opacity = "1";
+                card.style.transition = "none";
+                card.style.transform = "translateX(100vw) rotate(10deg)";
+                
+                setTimeout(() => {
+                    card.style.transition = "transform 0.4s ease, opacity 0.4s ease";
+                    card.style.transform = "translateX(0) rotate(0)";
+                    card.style.opacity = "1";
+                }, 50);
             }, 300);
         }
 
-        // 初始載入
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const icon = document.getElementById("soundIcon");
+            icon.innerText = isSoundOn ? "🔊" : "🔇";
+            icon.style.opacity = isSoundOn ? "1" : "0.5";
+        }
+
         window.onload = loadRiddle;
     </script>
 </body>
