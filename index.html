@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>🐍 靈蛇迎春：猜燈謎大會 🧨</title>
+    <style>
+        /* --- 設計師專區：您可以在這裡修改配色 --- */
+        :root {
+            --bg-color: #8B0000;       /* 背景深紅 */
+            --card-bg: #FFF8E7;        /* 卡片米白 */
+            --text-gold: #FFD700;      /* 金色文字 */
+            --btn-color: #D22B2B;      /* 按鈕紅 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: linear-gradient(135deg, #8B0000 0%, #600000 100%); /* 增加漸層質感 */
+            color: var(--text-gold);
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px; /* 手機最適合的寬度 */
+        }
+
+        .card-container {
+            perspective: 1000px;
+            margin: 20px auto;
+            min-height: 250px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            border: 4px solid var(--text-gold);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        #question {
+            font-size: 1.3rem;
+            font-weight: bold;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        #answer-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #ccc;
+            width: 100%;
+            font-size: 1.5rem;
+            color: #D22B2B;
+            font-weight: 900;
+            opacity: 0;           /* 預設隱藏 */
+            transition: opacity 0.5s;
+        }
+
+        #answer-section.visible {
+            opacity: 1;           /* 顯示時 */
+        }
+
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--text-gold);
+            color: #8B0000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b8860b; /* 按鈕立體感 */
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        footer {
+            margin-top: 40px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🧨 新春猜燈謎 🧨</h1>
+        
+        <div class="card-container">
+            <div class="card">
+                <div id="question">題目載入中...</div>
+                <div id="answer-section">
+                    謎底：<span id="answer-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button onclick="toggleAnswer()">🫣 看答案</button>
+            <button onclick="nextRiddle()">👉 下一題</button>
+        </div>
+
+        <footer>
+            祝大家 蛇年行大運 財源滾滾來！<br>
+            Made with ❤️ for Family
+        </footer>
+    </div>
+
+    <script>
+        // --- 題目區：您可以自由新增題目 ---
+        const riddles = [
+            { q: "樣子像小船，兩頭翹又尖，生在泥巴裡，渾身都是孔。（猜一植物）", a: "蓮藕" },
+            { q: "過年家家貼紅聯，劈里啪啦響連天。（猜一物品）", a: "鞭炮" },
+            { q: "身體白又胖，常在泥中藏，渾身是個寶，做菜少不了。（猜一蔬菜）", a: "冬瓜" },
+            { q: "一位老公公，面孔紅彤彤，晴天早早起，按時來上工。（猜一自然現象）", a: "太陽" },
+            { q: "兩姐妹，一樣長，酸甜苦辣她先嚐。（猜一餐具）", a: "筷子" },
+            { q: "遠看像座廟，近看沒神道，上面無瓦蓋，下面走人道。（猜一物品）", a: "帽子" },
+            { q: "身穿綠衣裳，肚裡水汪汪，生的子兒多，個個黑臉龐。（猜一水果）", a: "西瓜" },
+            { q: "駝背老公公，鬍子亂蓬蓬，生前沒有血，死後滿身紅。（猜一動物）", a: "蝦子" },
+            { q: "半個西瓜樣，口朝上面放。（猜一字）", a: "舀" },
+            { q: "一年四季穿皮襖，晚上巡邏白天睡覺。（猜一動物）", a: "貓頭鷹" },
+            { q: "東邊一條河，西邊一條河，兩頭不通水，中間小船過。（猜一人體器官）", a: "眼睛 (或鼻子上的眼鏡)" }
+        ];
+
+        let currentRiddle = {};
+
+        function loadRiddle() {
+            // 隨機抽選題目
+            const randomIndex = Math.floor(Math.random() * riddles.length);
+            currentRiddle = riddles[randomIndex];
+            
+            document.getElementById("question").innerText = currentRiddle.q;
+            document.getElementById("answer-text").innerText = currentRiddle.a;
+            
+            // 隱藏答案
+            document.getElementById("answer-section").classList.remove("visible");
+        }
+
+        function toggleAnswer() {
+            const answerSection = document.getElementById("answer-section");
+            if (answerSection.classList.contains("visible")) {
+                // 如果已經顯示，再次點擊可以是「隱藏」或不做事，這裡選擇不做事
+            } else {
+                answerSection.classList.add("visible");
+            }
+        }
+
+        function nextRiddle() {
+            // 簡單的動畫效果
+            const card = document.querySelector(".card");
+            card.style.transform = "translateX(50px)";
+            card.style.opacity = "0";
+            
+            setTimeout(() => {
+                loadRiddle();
+                card.style.transform = "translateX(0)";
+                card.style.opacity = "1";
+            }, 300);
+        }
+
+        // 初始載入
+        window.onload = loadRiddle;
+    </script>
+</body>
+</html>
